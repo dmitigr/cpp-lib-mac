@@ -30,7 +30,7 @@
 
 namespace dmitigr::mac::io {
 
-inline std::string hardware_uuid()
+inline std::string platform_uuid()
 {
   const io_service_t service = IOServiceGetMatchingService(kIOMainPortDefault,
     IOServiceMatching("IOPlatformExpertDevice"));
