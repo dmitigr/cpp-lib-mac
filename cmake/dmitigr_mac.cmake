@@ -38,7 +38,8 @@ set(dmitigr_mac_implementations
 
 set(dmitigr_libs_mac_deps base)
 
-list(APPEND dmitigr_mac_target_link_libraries_interface CoreFoundation IOKit)
+list(APPEND dmitigr_mac_target_link_libraries_interface
+  "-framework CoreFoundation" "-framework IOKit")
 
 # ------------------------------------------------------------------------------
 # Tests
