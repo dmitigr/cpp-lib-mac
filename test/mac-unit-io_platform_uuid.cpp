@@ -25,7 +25,7 @@ int main()
   try {
     namespace mac = dmitigr::mac;
 
-    cout << mac::io::hardware_uuid() << endl;
+    cout << mac::io::platform_uuid() << endl;
 
   } catch (const std::exception& e) {
     cerr << e.what() << endl;
