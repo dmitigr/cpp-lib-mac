@@ -20,6 +20,7 @@
 int main()
 {
   using std::cout;
+  using std::cerr;
   using std::endl;
   try {
     namespace mac = dmitigr::mac;
