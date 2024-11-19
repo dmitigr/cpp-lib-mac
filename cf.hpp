@@ -70,46 +70,54 @@ public:
     return ref_;
   }
 
+  explicit operator bool() const noexcept
+  {
+    return static_cast<bool>(ref());
+  }
+
 private:
   T ref_{};
 };
 
 // -----------------------------------------------------------------------------
 
-class Bundle final {
-public:
-  Bundle() = default;
+using Bundle = Type_guard<CFBundleRef>;
+using String = Type_guard<CFStringRef>;
+using Url = Type_guard<CFURLRef>;
 
-  explicit Bundle(CFURLRef url)
-    : handle_{CFBundleCreate(kCFAllocatorDefault, url)}
-  {}
+// -----------------------------------------------------------------------------
+// String
+// -----------------------------------------------------------------------------
 
-  explicit Bundle(const std::filesystem::path& path)
-  {
-    const Type_guard<CFURLRef> url{
-      CFURLCreateWithFileSystemPath(kCFAllocatorDefault, CFSTR(path.c_str()),
-        kCFURLPOSIXPathStyle, is_directory(path))};
-    handle_ = Bundle{url.ref()};
-  }
+inline String string_create_no_copy(const char* const str,
+  const CFStringEncoding encoding = kCFStringEncodingUTF8)
+{
+  return String{CFStringCreateWithCStringNoCopy(kCFAllocatorDefault, str,
+    encoding, kCFAllocatorNull)};
+}
 
-  void swap(Bundle& rhs) noexcept
-  {
-    handle_.swap(rhs);
-  }
+// -----------------------------------------------------------------------------
+// Bundle
+// -----------------------------------------------------------------------------
 
-  auto ref() const noexcept
-  {
-    return handle_.ref();
-  }
+inline Bundle bundle_create(const Url& url)
+{
+  return Bundle{CFBundleCreate(kCFAllocatorDefault, url.ref())};
+}
 
-  void* function_pointer_for_name(const char* const name) const noexcept
-  {
-    return CFBundleGetFunctionPointerForName(ref(), CFSTR(name));
-  }
+inline Bundle bundle_create(const std::filesystem::path& path)
+{
+  const auto path_ref = string_create_no_copy(path.c_str());
+  const Url url{CFURLCreateWithFileSystemPath(kCFAllocatorDefault,
+    path_ref.ref(), kCFURLPOSIXPathStyle, is_directory(path))};
+  return Bundle{url};
+}
 
-private:
-  Type_guard<CFBundleRef> handle_;
-};
+inline void* bundle_function_pointer_for_name(const Bundle& bundle,
+  const char* const name) const noexcept
+{
+  return CFBundleGetFunctionPointerForName(bundle.ref(), CFSTR(name));
+}
 
 } // namespace dmitigr::mac::cf
 
