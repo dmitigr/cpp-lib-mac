@@ -34,10 +34,11 @@ inline std::string platform_uuid()
 {
   const io_service_t service = IOServiceGetMatchingService(kIOMainPortDefault,
     IOServiceMatching("IOPlatformExpertDevice"));
-  const cf::Type_guard uuid{static_cast<CFStringRef>(
+  const cf::String uuid{static_cast<CFStringRef>(
     IORegistryEntryCreateCFProperty(service, CFSTR("IOPlatformUUID"),
       kCFAllocatorDefault, 0))};
-  const char* const uuid_c_str = CFStringGetCStringPtr(uuid.ref, kCFStringEncodingASCII);
+  const char* const uuid_c_str = CFStringGetCStringPtr(uuid.ref(),
+    kCFStringEncodingASCII);
   if (!uuid_c_str)
     throw std::runtime_error{"cannot get IOPlatformUUID from IOPlatformExpertDevice"};
   return uuid_c_str;

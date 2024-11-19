@@ -114,9 +114,10 @@ inline Bundle bundle_create(const std::filesystem::path& path)
 }
 
 inline void* bundle_function_pointer_for_name(const Bundle& bundle,
-  const char* const name) const noexcept
+  const char* const name)
 {
-  return CFBundleGetFunctionPointerForName(bundle.ref(), CFSTR(name));
+  return CFBundleGetFunctionPointerForName(bundle.ref(),
+    string_create_no_copy(name).ref());
 }
 
 } // namespace dmitigr::mac::cf
