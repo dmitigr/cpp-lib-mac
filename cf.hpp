@@ -110,7 +110,7 @@ inline Bundle bundle_create(const std::filesystem::path& path)
   const auto path_ref = string_create_no_copy(path.c_str());
   const Url url{CFURLCreateWithFileSystemPath(kCFAllocatorDefault,
     path_ref.ref(), kCFURLPOSIXPathStyle, is_directory(path))};
-  return Bundle{url};
+  return bundle_create(url);
 }
 
 inline void* bundle_function_pointer_for_name(const Bundle& bundle,
