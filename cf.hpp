@@ -80,6 +80,8 @@ private:
 };
 
 // -----------------------------------------------------------------------------
+// Type guard aliases
+// -----------------------------------------------------------------------------
 
 using Bundle = Type_guard<CFBundleRef>;
 using String = Type_guard<CFStringRef>;
@@ -89,23 +91,29 @@ using Url = Type_guard<CFURLRef>;
 // String
 // -----------------------------------------------------------------------------
 
-inline String string_create_no_copy(const char* const str,
+namespace string {
+
+inline String create_no_copy(const char* const str,
   const CFStringEncoding encoding = kCFStringEncodingUTF8)
 {
   return String{CFStringCreateWithCStringNoCopy(kCFAllocatorDefault, str,
     encoding, kCFAllocatorNull)};
 }
 
+} // namespace string
+
 // -----------------------------------------------------------------------------
 // Bundle
 // -----------------------------------------------------------------------------
 
-inline Bundle bundle_create(const Url& url)
+namespace bundle {
+
+inline Bundle create(const Url& url)
 {
   return Bundle{CFBundleCreate(kCFAllocatorDefault, url.ref())};
 }
 
-inline Bundle bundle_create(const std::filesystem::path& path)
+inline Bundle create(const std::filesystem::path& path)
 {
   const auto path_ref = string_create_no_copy(path.c_str());
   const Url url{CFURLCreateWithFileSystemPath(kCFAllocatorDefault,
@@ -113,12 +121,14 @@ inline Bundle bundle_create(const std::filesystem::path& path)
   return bundle_create(url);
 }
 
-inline void* bundle_function_pointer_for_name(const Bundle& bundle,
+inline void* function_pointer_for_name(const Bundle& bundle,
   const char* const name)
 {
   return CFBundleGetFunctionPointerForName(bundle.ref(),
     string_create_no_copy(name).ref());
 }
+
+} // namespace bundle
 
 } // namespace dmitigr::mac::cf
 
