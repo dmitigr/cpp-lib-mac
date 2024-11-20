@@ -37,7 +37,7 @@ inline std::string platform_uuid()
   const cf::String uuid{static_cast<CFStringRef>(
     IORegistryEntryCreateCFProperty(service, CFSTR("IOPlatformUUID"),
       kCFAllocatorDefault, 0))};
-  const char* const uuid_c_str = CFStringGetCStringPtr(uuid.ref(),
+  const char* const uuid_c_str = CFStringGetCStringPtr(uuid.native(),
     kCFStringEncodingASCII);
   if (!uuid_c_str)
     throw std::runtime_error{"cannot get IOPlatformUUID from IOPlatformExpertDevice"};

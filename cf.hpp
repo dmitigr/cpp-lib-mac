@@ -34,7 +34,7 @@ class Handle final {
 public:
   ~Handle()
   {
-    CFRelease(ref_);
+    CFRelease(native_);
   }
 
   Handle(const Handle&) = delete;
@@ -42,14 +42,14 @@ public:
 
   Handle() = default;
 
-  explicit Handle(T ref)
-    : ref_{ref}
+  explicit Handle(T native)
+    : native_{native}
   {}
 
   Handle(Handle&& rhs) noexcept
-    : ref_{rhs.ref}
+    : native_{rhs.native}
   {
-    rhs.ref_ = {};
+    rhs.native_ = {};
   }
 
   Handle& operator=(Handle&& rhs) noexcept
@@ -62,21 +62,21 @@ public:
   void swap(Handle& rhs) noexcept
   {
     using std::swap;
-    swap(ref_, rhs.ref_);
+    swap(native_, rhs.native_);
   }
 
-  T ref() const noexcept
+  T native() const noexcept
   {
-    return ref_;
+    return native_;
   }
 
   explicit operator bool() const noexcept
   {
-    return static_cast<bool>(ref());
+    return static_cast<bool>(native());
   }
 
 private:
-  T ref_{};
+  T native_{};
 };
 
 // -----------------------------------------------------------------------------
@@ -110,22 +110,22 @@ namespace bundle {
 
 inline Bundle create(const Url& url)
 {
-  return Bundle{CFBundleCreate(kCFAllocatorDefault, url.ref())};
+  return Bundle{CFBundleCreate(kCFAllocatorDefault, url.native())};
 }
 
 inline Bundle create(const std::filesystem::path& path)
 {
-  const auto path_ref = string_create_no_copy(path.c_str());
+  const auto path_hdl = string_create_no_copy(path.c_str());
   const Url url{CFURLCreateWithFileSystemPath(kCFAllocatorDefault,
-    path_ref.ref(), kCFURLPOSIXPathStyle, is_directory(path))};
+    path_hdl.native(), kCFURLPOSIXPathStyle, is_directory(path))};
   return bundle_create(url);
 }
 
 inline void* function_pointer_for_name(const Bundle& bundle,
   const char* const name)
 {
-  return CFBundleGetFunctionPointerForName(bundle.ref(),
-    string_create_no_copy(name).ref());
+  return CFBundleGetFunctionPointerForName(bundle.native(),
+    string_create_no_copy(name).native());
 }
 
 } // namespace bundle
