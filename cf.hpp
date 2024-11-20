@@ -30,36 +30,36 @@
 namespace dmitigr::mac::cf {
 
 template<typename T>
-class Type_guard final {
+class Handle final {
 public:
-  ~Type_guard()
+  ~Handle()
   {
     CFRelease(ref_);
   }
 
-  Type_guard(const Type_guard&) = delete;
-  Type_guard& operator=(const Type_guard&) = delete;
+  Handle(const Handle&) = delete;
+  Handle& operator=(const Handle&) = delete;
 
-  Type_guard() = default;
+  Handle() = default;
 
-  explicit Type_guard(T ref)
+  explicit Handle(T ref)
     : ref_{ref}
   {}
 
-  Type_guard(Type_guard&& rhs) noexcept
+  Handle(Handle&& rhs) noexcept
     : ref_{rhs.ref}
   {
     rhs.ref_ = {};
   }
 
-  Type_guard& operator=(Type_guard&& rhs) noexcept
+  Handle& operator=(Handle&& rhs) noexcept
   {
-    Type_guard tmp{std::move(rhs)};
+    Handle tmp{std::move(rhs)};
     swap(tmp);
     return *this;
   }
 
-  void swap(Type_guard& rhs) noexcept
+  void swap(Handle& rhs) noexcept
   {
     using std::swap;
     swap(ref_, rhs.ref_);
@@ -80,12 +80,12 @@ private:
 };
 
 // -----------------------------------------------------------------------------
-// Type guard aliases
+// Handle aliases
 // -----------------------------------------------------------------------------
 
-using Bundle = Type_guard<CFBundleRef>;
-using String = Type_guard<CFStringRef>;
-using Url = Type_guard<CFURLRef>;
+using Bundle = Handle<CFBundleRef>;
+using String = Handle<CFStringRef>;
+using Url = Handle<CFURLRef>;
 
 // -----------------------------------------------------------------------------
 // String
