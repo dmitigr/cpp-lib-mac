@@ -37,7 +37,8 @@ class Handle final {
 public:
   ~Handle()
   {
-    CFRelease(native_);
+    if (native_)
+      CFRelease(native_);
   }
 
   Handle(const Handle&) = delete;
