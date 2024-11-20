@@ -44,9 +44,23 @@ public:
 
   Handle() = default;
 
-  explicit Handle(T native)
+  Handle(T native)
     : native_{native}
-  {}
+  {
+    using std::is_same_v;
+    using D = std::decay_t<T>;
+    static_assert(is_same_v<D, CFBundleRef> ||
+      is_same_v<D, CFDictionaryRef> ||
+      is_same_v<D, CFStringRef> ||
+      is_same_v<D, CFURLRef>);
+  }
+
+  static Handle make(T native)
+  {
+    Handle result;
+    result.native_ = native;
+    return result;
+  }
 
   Handle(Handle&& rhs) noexcept
     : native_{rhs.native_}
