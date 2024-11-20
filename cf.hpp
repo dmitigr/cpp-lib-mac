@@ -23,6 +23,7 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <stdexcept>
 #include <utility>
 
 #include <CoreFoundation/CoreFoundation.h>
@@ -91,7 +92,7 @@ using Url = Handle<CFURLRef>;
 // String
 // -----------------------------------------------------------------------------
 
-namespace string {
+inline namespace string {
 
 inline String create_no_copy(const char* const str,
   const CFStringEncoding encoding = kCFStringEncodingUTF8)
@@ -100,13 +101,40 @@ inline String create_no_copy(const char* const str,
     encoding, kCFAllocatorNull)};
 }
 
-} // namespace string
+inline std::string to_string(const String& str,
+  const CFStringEncoding result_encoding = kCFStringEncodingUTF8)
+{
+  {
+    const char* const c_str = CFStringGetCStringPtr(str.native(),
+      result_encoding);
+    if (c_str)
+      return c_str;
+  }
+
+  const auto utf16_chars_count = CFStringGetLength(str.native());
+  const auto bytes_count = CFStringGetMaximumSizeForEncoding(utf16_chars_count,
+    result_encoding);
+  if (bytes_count == kCFNotFound)
+    throw std::overflow_error{"cannot convert CFString to std::string"};
+
+  std::string result(bytes_count, 0);
+  if (!CFStringGetCString(str.native(), result.data(), result.size() + 1,
+      result_encoding))
+    throw std::runtime_error{"cannot convert CFString to std::string"};
+
+  const auto e = find_if_not(result.crbegin(), result.crend(),
+    [](const auto ch){return !ch;}).base();
+  result.resize(e - result.cbegin());
+  return result;
+}
+
+} // inline namespace string
 
 // -----------------------------------------------------------------------------
 // Bundle
 // -----------------------------------------------------------------------------
 
-namespace bundle {
+inline namespace bundle {
 
 inline Bundle create(const Url& url)
 {
@@ -115,20 +143,20 @@ inline Bundle create(const Url& url)
 
 inline Bundle create(const std::filesystem::path& path)
 {
-  const auto path_hdl = string_create_no_copy(path.c_str());
+  const auto path_hdl = string::create_no_copy(path.c_str());
   const Url url{CFURLCreateWithFileSystemPath(kCFAllocatorDefault,
     path_hdl.native(), kCFURLPOSIXPathStyle, is_directory(path))};
-  return bundle_create(url);
+  return bundle::create(url);
 }
 
 inline void* function_pointer_for_name(const Bundle& bundle,
   const char* const name)
 {
   return CFBundleGetFunctionPointerForName(bundle.native(),
-    string_create_no_copy(name).native());
+    string::create_no_copy(name).native());
 }
 
-} // namespace bundle
+} // inline namespace bundle
 
 } // namespace dmitigr::mac::cf
 

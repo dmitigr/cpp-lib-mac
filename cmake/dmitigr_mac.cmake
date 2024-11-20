@@ -47,7 +47,7 @@ list(APPEND dmitigr_mac_target_link_libraries_interface
 
 if(DMITIGR_LIBS_TESTS)
   if(APPLE AND NOT CMAKE_SYSTEM_NAME MATCHES MSYS|MinGW|Cygwin)
-    set(dmitigr_mac_tests io_platform_uuid)
+    set(dmitigr_mac_tests cf io_platform_uuid)
     set(dmitigr_mac_tests_target_link_libraries dmitigr_base)
   endif()
 endif()
