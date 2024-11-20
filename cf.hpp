@@ -23,6 +23,7 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <optional>
 #include <stdexcept>
 #include <utility>
 
@@ -48,7 +49,7 @@ public:
   {}
 
   Handle(Handle&& rhs) noexcept
-    : native_{rhs.native}
+    : native_{rhs.native_}
   {
     rhs.native_ = {};
   }
@@ -85,6 +86,7 @@ private:
 // -----------------------------------------------------------------------------
 
 using Bundle = Handle<CFBundleRef>;
+using Dictionary = Handle<CFDictionaryRef>;
 using String = Handle<CFStringRef>;
 using Url = Handle<CFURLRef>;
 
@@ -157,6 +159,33 @@ inline void* function_pointer_for_name(const Bundle& bundle,
 }
 
 } // inline namespace bundle
+
+// -----------------------------------------------------------------------------
+// Dictionary
+// -----------------------------------------------------------------------------
+
+inline namespace dictionary {
+
+inline Dictionary create(const void** keys, const void** values,
+  const CFIndex size,
+  const CFDictionaryKeyCallBacks* const key_callbacks,
+  const CFDictionaryValueCallBacks* const value_callbacks)
+{
+  return Dictionary{CFDictionaryCreate(kCFAllocatorDefault, keys, values, size,
+    key_callbacks, value_callbacks)};
+}
+
+inline std::optional<const void*> value(const Dictionary& dictionary,
+  const void* const key)
+{
+  const void* result{};
+  if (CFDictionaryGetValueIfPresent(dictionary.native(), key, &result))
+    return result;
+  else
+    return std::nullopt;
+}
+
+} // inline namespace dictionary
 
 } // namespace dmitigr::mac::cf
 
