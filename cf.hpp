@@ -25,6 +25,7 @@
 #include <filesystem>
 #include <optional>
 #include <stdexcept>
+#include <type_traits>
 #include <utility>
 
 #include <CoreFoundation/CoreFoundation.h>
