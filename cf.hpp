@@ -28,7 +28,6 @@
 #include <utility>
 
 #include <CoreFoundation/CoreFoundation.h>
-#include <MacTypes.h>
 
 namespace dmitigr::mac::cf {
 
