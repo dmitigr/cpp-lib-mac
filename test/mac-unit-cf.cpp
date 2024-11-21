@@ -28,15 +28,38 @@ int main()
     namespace mac = dmitigr::mac;
 
     {
-      const auto str = mac::cf::string::create_no_copy("");
-      const auto stdstr = mac::cf::string::to_string(str);
-      ASSERT(stdstr == "");
+      const int num_in{1983};
+      const auto num = mac::cf::number::create(num_in);
+      const auto num_out = mac::cf::number::to<int>(num);
+      ASSERT(num_in == num_out);
     }
 
     {
-      const auto str = mac::cf::string::create_no_copy("Dima");
-      const auto stdstr = to_string(str); // ADL test
-      ASSERT(stdstr == "Dima");
+      const float num_in{1983.0406};
+      const auto num = mac::cf::number::create(num_in);
+      const auto num_out = mac::cf::number::to<float>(num);
+      ASSERT(num_in == num_out);
+    }
+
+    {
+      const double num_in{1983.0406};
+      const auto num = mac::cf::number::create(num_in);
+      const auto num_out = mac::cf::number::to<double>(num);
+      ASSERT(num_in == num_out);
+    }
+
+    {
+      const char* const str_in{""};
+      const auto str = mac::cf::string::create_no_copy(str_in);
+      const auto str_out = mac::cf::string::to_string(str);
+      ASSERT(str_in == str_out);
+    }
+
+    {
+      const char* const str_in{"Dima"};
+      const auto str = mac::cf::string::create_no_copy(str_in);
+      const auto str_out = to_string(str); // ADL test
+      ASSERT(str_in == str_out);
     }
   } catch (const std::exception& e) {
     cerr << e.what() << endl;
