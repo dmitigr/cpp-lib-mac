@@ -45,12 +45,12 @@ public:
 
   Handle() = default;
 
-  static Handle create(T native)
+  static Handle created(T native)
   {
     return Handle{native};
   }
 
-  static Handle retain(T native)
+  static Handle retained(T native)
   {
     if (native)
       CFRetain(native);
@@ -137,7 +137,7 @@ template<typename T>
 Number create(const T value)
 {
   using D = std::decay_t<T>;
-  return Number::create(CFNumberCreate(kCFAllocatorDefault,
+  return Number::created(CFNumberCreate(kCFAllocatorDefault,
     Traits<D>::number_type, &value));
 }
 
@@ -173,7 +173,7 @@ inline namespace string {
 inline String create_no_copy(const char* const str,
   const CFStringEncoding encoding = kCFStringEncodingUTF8)
 {
-  return String::create(CFStringCreateWithCStringNoCopy(kCFAllocatorDefault, str,
+  return String::created(CFStringCreateWithCStringNoCopy(kCFAllocatorDefault, str,
     encoding, kCFAllocatorNull));
 }
 
@@ -214,13 +214,13 @@ inline namespace bundle {
 
 inline Bundle create(const Url& url)
 {
-  return Bundle::create(CFBundleCreate(kCFAllocatorDefault, url.native()));
+  return Bundle::created(CFBundleCreate(kCFAllocatorDefault, url.native()));
 }
 
 inline Bundle create(const std::filesystem::path& path)
 {
   const auto path_hdl = string::create_no_copy(path.c_str());
-  const auto url = Url::create(CFURLCreateWithFileSystemPath(kCFAllocatorDefault,
+  const auto url = Url::created(CFURLCreateWithFileSystemPath(kCFAllocatorDefault,
     path_hdl.native(), kCFURLPOSIXPathStyle, is_directory(path)));
   return bundle::create(url);
 }
@@ -245,7 +245,7 @@ inline Dictionary create(const void** keys, const void** values,
   const CFDictionaryKeyCallBacks* const key_callbacks,
   const CFDictionaryValueCallBacks* const value_callbacks)
 {
-  return Dictionary::create(CFDictionaryCreate(kCFAllocatorDefault, keys, values, size,
+  return Dictionary::created(CFDictionaryCreate(kCFAllocatorDefault, keys, values, size,
     key_callbacks, value_callbacks));
 }
 
