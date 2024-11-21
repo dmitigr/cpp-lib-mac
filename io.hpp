@@ -34,9 +34,9 @@ inline std::string platform_uuid()
 {
   const io_service_t service = IOServiceGetMatchingService(kIOMainPortDefault,
     IOServiceMatching("IOPlatformExpertDevice"));
-  const cf::String uuid{static_cast<CFStringRef>(
+  const auto uuid = cf::String::create(static_cast<CFStringRef>(
     IORegistryEntryCreateCFProperty(service, CFSTR("IOPlatformUUID"),
-      kCFAllocatorDefault, 0))};
+      kCFAllocatorDefault, 0)));
   const char* const uuid_c_str = CFStringGetCStringPtr(uuid.native(),
     kCFStringEncodingASCII);
   if (!uuid_c_str)

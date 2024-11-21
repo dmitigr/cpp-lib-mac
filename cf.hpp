@@ -31,7 +31,7 @@
 
 namespace dmitigr::mac::cf {
 
-template<typename T>
+template<class T>
 class Handle final {
 public:
   ~Handle()
@@ -45,9 +45,17 @@ public:
 
   Handle() = default;
 
-  explicit Handle(T native)
-    : native_{native}
-  {}
+  static Handle create(T native)
+  {
+    return Handle{native};
+  }
+
+  static Handle retain(T native)
+  {
+    if (native)
+      CFRetain(native);
+    return Handle{native};
+  }
 
   Handle(Handle&& rhs) noexcept
     : native_{rhs.native_}
@@ -80,6 +88,10 @@ public:
 
 private:
   T native_{};
+
+  explicit Handle(T native) noexcept
+    : native_{native}
+  {}
 };
 
 // -----------------------------------------------------------------------------
@@ -100,8 +112,8 @@ inline namespace string {
 inline String create_no_copy(const char* const str,
   const CFStringEncoding encoding = kCFStringEncodingUTF8)
 {
-  return String{CFStringCreateWithCStringNoCopy(kCFAllocatorDefault, str,
-    encoding, kCFAllocatorNull)};
+  return String::create(CFStringCreateWithCStringNoCopy(kCFAllocatorDefault, str,
+    encoding, kCFAllocatorNull));
 }
 
 inline std::string to_string(const String& str,
@@ -141,14 +153,14 @@ inline namespace bundle {
 
 inline Bundle create(const Url& url)
 {
-  return Bundle{CFBundleCreate(kCFAllocatorDefault, url.native())};
+  return Bundle::create(CFBundleCreate(kCFAllocatorDefault, url.native()));
 }
 
 inline Bundle create(const std::filesystem::path& path)
 {
   const auto path_hdl = string::create_no_copy(path.c_str());
-  const Url url{CFURLCreateWithFileSystemPath(kCFAllocatorDefault,
-    path_hdl.native(), kCFURLPOSIXPathStyle, is_directory(path))};
+  const auto url = Url::create(CFURLCreateWithFileSystemPath(kCFAllocatorDefault,
+    path_hdl.native(), kCFURLPOSIXPathStyle, is_directory(path)));
   return bundle::create(url);
 }
 
@@ -172,8 +184,8 @@ inline Dictionary create(const void** keys, const void** values,
   const CFDictionaryKeyCallBacks* const key_callbacks,
   const CFDictionaryValueCallBacks* const value_callbacks)
 {
-  return Dictionary{CFDictionaryCreate(kCFAllocatorDefault, keys, values, size,
-    key_callbacks, value_callbacks)};
+  return Dictionary::create(CFDictionaryCreate(kCFAllocatorDefault, keys, values, size,
+    key_callbacks, value_callbacks));
 }
 
 inline std::optional<const void*> value(const Dictionary& dictionary,
