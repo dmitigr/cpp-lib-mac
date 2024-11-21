@@ -28,6 +28,7 @@
 #include <utility>
 
 #include <CoreFoundation/CoreFoundation.h>
+#include <MacTypes.h>
 
 namespace dmitigr::mac::cf {
 
@@ -100,8 +101,69 @@ private:
 
 using Bundle = Handle<CFBundleRef>;
 using Dictionary = Handle<CFDictionaryRef>;
+using Number = Handle<CFNumberRef>;
 using String = Handle<CFStringRef>;
 using Url = Handle<CFURLRef>;
+
+// -----------------------------------------------------------------------------
+// Number
+// -----------------------------------------------------------------------------
+
+inline namespace number {
+
+template<typename> struct Traits;
+template<> struct Traits<char> final {
+  static constexpr CFNumberType number_type{kCFNumberCharType};
+};
+template<> struct Traits<short> final {
+  static constexpr CFNumberType number_type{kCFNumberShortType};
+};
+template<> struct Traits<int> final {
+  static constexpr CFNumberType number_type{kCFNumberIntType};
+};
+template<> struct Traits<long> final {
+  static constexpr CFNumberType number_type{kCFNumberLongType};
+};
+template<> struct Traits<long long> final {
+  static constexpr CFNumberType number_type{kCFNumberLongLongType};
+};
+template<> struct Traits<float> final {
+  static constexpr CFNumberType number_type{kCFNumberFloatType};
+};
+template<> struct Traits<double> final {
+  static constexpr CFNumberType number_type{kCFNumberDoubleType};
+};
+
+template<typename T>
+Number create(const T value)
+{
+  using D = std::decay_t<T>;
+  return Number::create(CFNumberCreate(kCFAllocatorDefault,
+    Traits<D>::number_type, &value));
+}
+
+template<typename T>
+std::pair<T, bool> to_approximated(const Number& number)
+{
+  using D = std::decay_t<T>;
+  D result{};
+  const auto ok = CFNumberGetValue(number.native(), Traits<D>::number_type,
+    &result);
+  return {result, ok};
+}
+
+template<typename T>
+T to(const Number& number)
+{
+  using D = std::decay_t<T>;
+  const auto [result, ok] = to_approximated<T>(number);
+  if (!ok)
+    throw std::runtime_error{"cannot convert CFNumber to value of CFNumberType "
+      +std::to_string(Traits<D>::number_type)};
+  return result;
+}
+
+} // inline namespace number
 
 // -----------------------------------------------------------------------------
 // String
