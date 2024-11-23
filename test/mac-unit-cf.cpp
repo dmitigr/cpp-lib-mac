@@ -27,6 +27,10 @@ int main()
   try {
     namespace mac = dmitigr::mac;
 
+    using mac::cf::Is_handle_v;
+    static_assert(Is_handle_v<mac::cf::Bundle>);
+    static_assert(!Is_handle_v<int>);
+
     {
       const int num_in{1983};
       const auto num = mac::cf::number::create(num_in);
@@ -60,6 +64,13 @@ int main()
       const auto str = mac::cf::string::create_no_copy(str_in);
       const auto str_out = to_string(str); // ADL test
       ASSERT(str_in == str_out);
+    }
+
+    {
+      mac::cf::Dictionary dict;
+      try {
+        mac::cf::dictionary::value<int>(dict, "key");
+      } catch (...) {}
     }
   } catch (const std::exception& e) {
     cerr << e.what() << endl;

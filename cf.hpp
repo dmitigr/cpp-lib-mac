@@ -21,19 +21,96 @@
 #error dmitigr/mac/cf.hpp is usable only on macOS!
 #endif
 
+#include "../base/traits.hpp"
+
 #include <algorithm>
 #include <filesystem>
 #include <optional>
 #include <stdexcept>
+#include <string>
+#include <string_view>
+#include <type_traits>
 #include <utility>
 
 #include <CoreFoundation/CoreFoundation.h>
 
 namespace dmitigr::mac::cf {
 
-template<class T>
-class Handle final {
+// -----------------------------------------------------------------------------
+// Traits
+// -----------------------------------------------------------------------------
+
+template<typename> struct Traits;
+
+template<> struct Traits<CFNumberRef> final {
+  static CFTypeID cf_type_id() noexcept
+  {
+    return CFNumberGetTypeID();
+  }
+};
+
+template<> struct Traits<CFStringRef> final {
+  static CFTypeID cf_type_id() noexcept
+  {
+    return CFStringGetTypeID();
+  }
+};
+
+template<> struct Traits<char> final {
+  using Ref = CFNumberRef;
+
+  static constexpr CFNumberType number_type{kCFNumberCharType};
+};
+
+template<> struct Traits<short> final {
+  using Ref = CFNumberRef;
+
+  static constexpr CFNumberType number_type{kCFNumberShortType};
+};
+
+template<> struct Traits<int> final {
+  using Ref = CFNumberRef;
+
+  static constexpr CFNumberType number_type{kCFNumberIntType};
+};
+
+template<> struct Traits<long> final {
+  using Ref = CFNumberRef;
+
+  static constexpr CFNumberType number_type{kCFNumberLongType};
+};
+
+template<> struct Traits<long long> final {
+  using Ref = CFNumberRef;
+
+  static constexpr CFNumberType number_type{kCFNumberLongLongType};
+};
+
+template<> struct Traits<float> final {
+  using Ref = CFNumberRef;
+
+  static constexpr CFNumberType number_type{kCFNumberFloatType};
+};
+
+template<> struct Traits<double> final {
+  using Ref = CFNumberRef;
+
+  static constexpr CFNumberType number_type{kCFNumberDoubleType};
+};
+
+template<> struct Traits<std::string> final {
+  using Ref = CFStringRef;
+};
+
+// -----------------------------------------------------------------------------
+// Handle
+// -----------------------------------------------------------------------------
+
+template<class RefType>
+class [[nodiscard]] Handle final {
 public:
+  using Ref = RefType;
+
   ~Handle()
   {
     if (native_)
@@ -45,12 +122,12 @@ public:
 
   Handle() = default;
 
-  static Handle created(T native)
+  static Handle created(Ref native)
   {
     return Handle{native};
   }
 
-  static Handle retained(T native)
+  static Handle retained(Ref native)
   {
     if (native)
       CFRetain(native);
@@ -76,7 +153,7 @@ public:
     swap(native_, rhs.native_);
   }
 
-  T native() const noexcept
+  Ref native() const noexcept
   {
     return native_;
   }
@@ -87,16 +164,12 @@ public:
   }
 
 private:
-  T native_{};
+  Ref native_{};
 
-  explicit Handle(T native) noexcept
+  explicit Handle(Ref native) noexcept
     : native_{native}
   {}
 };
-
-// -----------------------------------------------------------------------------
-// Handle aliases
-// -----------------------------------------------------------------------------
 
 using Bundle = Handle<CFBundleRef>;
 using Dictionary = Handle<CFDictionaryRef>;
@@ -104,36 +177,23 @@ using Number = Handle<CFNumberRef>;
 using String = Handle<CFStringRef>;
 using Url = Handle<CFURLRef>;
 
+template<typename>
+struct Is_handle : std::false_type {};
+
+template<typename T>
+struct Is_handle<Handle<T>> : std::true_type {};
+
+template<typename T>
+constexpr bool Is_handle_v = Is_handle<T>::value;
+
 // -----------------------------------------------------------------------------
 // Number
 // -----------------------------------------------------------------------------
 
 inline namespace number {
 
-template<typename> struct Traits;
-template<> struct Traits<char> final {
-  static constexpr CFNumberType number_type{kCFNumberCharType};
-};
-template<> struct Traits<short> final {
-  static constexpr CFNumberType number_type{kCFNumberShortType};
-};
-template<> struct Traits<int> final {
-  static constexpr CFNumberType number_type{kCFNumberIntType};
-};
-template<> struct Traits<long> final {
-  static constexpr CFNumberType number_type{kCFNumberLongType};
-};
-template<> struct Traits<long long> final {
-  static constexpr CFNumberType number_type{kCFNumberLongLongType};
-};
-template<> struct Traits<float> final {
-  static constexpr CFNumberType number_type{kCFNumberFloatType};
-};
-template<> struct Traits<double> final {
-  static constexpr CFNumberType number_type{kCFNumberDoubleType};
-};
-
 template<typename T>
+[[nodiscard]]
 Number create(const T value)
 {
   using D = std::decay_t<T>;
@@ -142,8 +202,12 @@ Number create(const T value)
 }
 
 template<typename T>
+[[nodiscard]]
 std::pair<T, bool> to_approximated(const Number& number)
 {
+  if (!number)
+    throw std::invalid_argument{"cannot access number: invalid handle"};
+
   using D = std::decay_t<T>;
   D result{};
   const auto ok = CFNumberGetValue(number.native(), Traits<D>::number_type,
@@ -152,6 +216,7 @@ std::pair<T, bool> to_approximated(const Number& number)
 }
 
 template<typename T>
+[[nodiscard]]
 T to(const Number& number)
 {
   using D = std::decay_t<T>;
@@ -170,6 +235,7 @@ T to(const Number& number)
 
 inline namespace string {
 
+[[nodiscard]]
 inline String create_no_copy(const char* const str,
   const CFStringEncoding encoding = kCFStringEncodingUTF8)
 {
@@ -177,9 +243,13 @@ inline String create_no_copy(const char* const str,
     encoding, kCFAllocatorNull));
 }
 
+[[nodiscard]]
 inline std::string to_string(const String& str,
   const CFStringEncoding result_encoding = kCFStringEncodingUTF8)
 {
+  if (!str)
+    throw std::invalid_argument{"cannot access string: invalid handle"};
+
   {
     const char* const c_str = CFStringGetCStringPtr(str.native(),
       result_encoding);
@@ -212,11 +282,13 @@ inline std::string to_string(const String& str,
 
 inline namespace bundle {
 
+[[nodiscard]]
 inline Bundle create(const Url& url)
 {
   return Bundle::created(CFBundleCreate(kCFAllocatorDefault, url.native()));
 }
 
+[[nodiscard]]
 inline Bundle create(const std::filesystem::path& path)
 {
   const auto path_hdl = string::create_no_copy(path.c_str());
@@ -225,9 +297,13 @@ inline Bundle create(const std::filesystem::path& path)
   return bundle::create(url);
 }
 
+[[nodiscard]]
 inline void* function_pointer_for_name(const Bundle& bundle,
   const char* const name)
 {
+  if (!bundle)
+    throw std::invalid_argument{"cannot access bundle: invalid handle"};
+
   return CFBundleGetFunctionPointerForName(bundle.native(),
     string::create_no_copy(name).native());
 }
@@ -240,23 +316,86 @@ inline void* function_pointer_for_name(const Bundle& bundle,
 
 inline namespace dictionary {
 
+[[nodiscard]]
 inline Dictionary create(const void** keys, const void** values,
   const CFIndex size,
   const CFDictionaryKeyCallBacks* const key_callbacks,
   const CFDictionaryValueCallBacks* const value_callbacks)
 {
-  return Dictionary::created(CFDictionaryCreate(kCFAllocatorDefault, keys, values, size,
-    key_callbacks, value_callbacks));
+  return Dictionary::created(CFDictionaryCreate(kCFAllocatorDefault, keys,
+    values, size, key_callbacks, value_callbacks));
 }
 
+[[nodiscard]]
 inline std::optional<const void*> value(const Dictionary& dictionary,
   const void* const key)
 {
+  if (!dictionary)
+    throw std::invalid_argument{"cannot access dictionary: invalid handle"};
+
   const void* result{};
   if (CFDictionaryGetValueIfPresent(dictionary.native(), key, &result))
     return result;
   else
     return std::nullopt;
+}
+
+template<typename ValueHdl, typename KeyRef>
+[[nodiscard]]
+std::enable_if_t<Is_handle_v<std::decay_t<ValueHdl>>, std::optional<ValueHdl>>
+value(const Dictionary& dictionary, const Handle<KeyRef>& key)
+{
+  if (const auto val = value(dictionary, key.native())) {
+    using Value_ref = typename ValueHdl::Ref;
+    if (CFGetTypeID(*val) != Traits<Value_ref>::cf_type_id())
+      throw std::runtime_error{"cannot get value of dictionary: "
+        "incompatible value type"};
+    return ValueHdl::retained(static_cast<Value_ref>(*val));
+  }
+  return std::nullopt;
+}
+
+template<typename Value, typename Key>
+[[nodiscard]]
+std::optional<Value> value(const Dictionary& dictionary, const Key& key)
+{
+  using Dkey = std::decay_t<Key>;
+  using Dvalue = std::decay_t<Value>;
+
+  using Value_hdl = std::conditional_t<Is_handle_v<Dvalue>, Dvalue,
+    Handle<typename Traits<Dvalue>::Ref>>;
+
+  const auto& key_hdl = [&key]() -> decltype(auto)
+  {
+    if constexpr (Is_handle_v<Dkey>)
+      return key;
+    else if constexpr (std::is_arithmetic_v<Dkey>)
+      return number::create(key);
+    else if constexpr (std::is_same_v<Dkey, std::string>)
+      return string::create_no_copy(key.c_str());
+    else
+      static_assert(false_value<Dkey>, "unsupported key type");
+  }();
+
+  if (const auto val = value<Value_hdl>(dictionary, key_hdl)) {
+    if constexpr (Is_handle_v<Dvalue>)
+      return *val;
+    else if constexpr (std::is_arithmetic_v<Dvalue>)
+      return number::to<Dvalue>(*val);
+    else if constexpr (std::is_same_v<Dvalue, std::string>)
+      return string::to_string(*val);
+    else
+      static_assert(false_value<Dvalue>, "unsupported value type");
+  }
+
+  return std::nullopt;
+}
+
+template<typename Value>
+[[nodiscard]]
+std::optional<Value> value(const Dictionary& dictionary, const char* const key)
+{
+  return value<Value>(dictionary, string::create_no_copy(key));
 }
 
 } // inline namespace dictionary
