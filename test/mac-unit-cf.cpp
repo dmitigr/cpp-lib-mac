@@ -69,7 +69,7 @@ int main()
     {
       mac::cf::Dictionary dict;
       try {
-        mac::cf::dictionary::value<int>(dict, "key");
+        (void)mac::cf::dictionary::value<int>(dict, "key");
       } catch (...) {}
     }
   } catch (const std::exception& e) {
